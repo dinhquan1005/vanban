@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Đọc Văn Bản</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        body {
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            resize: none;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .buttons {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .btn-play {
+            background-color: #007bff;
+            color: white;
+        }
+        .btn-play:hover {
+            background-color: #0056b3;
+        }
+        .btn-stop {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn-stop:hover {
+            background-color: #a71d2a;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Đọc Văn Bản</h1>
+        <textarea id="text-input" placeholder="Nhập văn bản bạn muốn đọc vào đây..."></textarea>
+        
+        <select id="voice-select">
+            <option value="">Đang tải giọng đọc...</option>
+        </select>
+
+        <div class="buttons">
+            <button class="btn-play" id="play-btn">▶ Đọc</button>
+            <button class="btn-stop" id="stop-btn">⬛ Dừng</button>
+        </div>
+    </div>
+
+    <script>
+        // Khởi tạo Web Speech API
+        const synth = window.speechSynthesis;
+        const textInput = document.querySelector('#text-input');
+        const voiceSelect = document.querySelector('#voice-select');
+        const playBtn = document.querySelector('#play-btn');
+        const stopBtn = document.querySelector('#stop-btn');
+
+        let voices = [];
+
+        // Hàm lấy danh sách giọng đọc từ trình duyệt
+        function populateVoiceList() {
+            voices = synth.getVoices();
+            voiceSelect.innerHTML = '';
+            
+            // Lọc và hiển thị các giọng đọc (ưu tiên tiếng Việt nếu có)
+            voices.forEach((voice) => {
+                const option = document.createElement('option');
+                option.textContent = `${voice.name} (${voice.lang})`;
+                
+                // Lưu thông tin để gọi sau này
+                option.setAttribute('data-lang', voice.lang);
+                option.setAttribute('data-name', voice.name);
+                
+                // Mặc định chọn giọng tiếng Việt nếu trình duyệt hỗ trợ
+                if (voice.lang.includes('vi')) {
+                    option.selected = true;
+                }
+                
+                voiceSelect.appendChild(option);
+            });
+        }
+
+        // Trình duyệt cần thời gian để tải danh sách giọng đọc
+        populateVoiceList();
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = populateVoiceList;
+        }
+
+        // Hàm phát âm thanh
+        function speak() {
+            if (synth.speaking) {
+                console.error('Đang đọc rồi...');
+                return;
+            }
+            
+            if (textInput.value !== '') {
+                const utterThis = new SpeechSynthesisUtterance(textInput.value);
+                
+                // Tìm giọng đọc được chọn trong dropdown
+                const selectedOption = voiceSelect.selectedOptions[0].getAttribute('data-name');
+                for (let i = 0; i < voices.length; i++) {
+                    if (voices[i].name === selectedOption) {
+                        utterThis.voice = voices[i];
+                        break;
+                    }
+                }
+                
+                // Bắt đầu đọc
+                synth.speak(utterThis);
+            }
+        }
+
+        // Bắt sự kiện click nút Đọc
+        playBtn.addEventListener('click', () => {
+            speak();
+        });
+
+        // Bắt sự kiện click nút Dừng
+        stopBtn.addEventListener('click', () => {
+            synth.cancel();
+        });
+    </script>
+</body>
+</html>
