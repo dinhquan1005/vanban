@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Web Đọc Văn Bản</title>
+    <title>Web Đọc Văn Bản Tiếng Việt</title>
     <style>
         * {
             box-sizing: border-box;
@@ -16,51 +16,58 @@
             align-items: center;
             height: 100vh;
             margin: 0;
+            padding: 20px;
         }
         .container {
             background-color: white;
             padding: 30px;
             border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
             width: 100%;
-            max-width: 500px;
+            max-width: 800px; /* Làm khung giao diện rộng hơn */
         }
         h1 {
             text-align: center;
             color: #333;
             margin-bottom: 20px;
+            font-size: 32px;
         }
         textarea {
             width: 100%;
-            height: 150px;
-            padding: 15px;
-            border: 1px solid #ccc;
+            height: 300px; /* Tăng chiều cao khu vực nhập văn bản */
+            padding: 20px;
+            border: 2px solid #ccc;
             border-radius: 8px;
-            resize: none;
-            font-size: 16px;
+            resize: vertical; /* Cho phép người dùng tự kéo dài thêm nếu muốn */
+            font-size: 22px; /* Chữ to lên dễ nhìn */
+            line-height: 1.6;
             margin-bottom: 20px;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #007bff;
         }
         select {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             margin-bottom: 20px;
-            border: 1px solid #ccc;
+            border: 2px solid #ccc;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 18px;
         }
         .buttons {
             display: flex;
-            gap: 10px;
+            gap: 15px;
         }
         button {
             flex: 1;
-            padding: 12px;
+            padding: 15px;
             border: none;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 20px;
             font-weight: bold;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: all 0.2s ease-in-out;
         }
         .btn-play {
             background-color: #007bff;
@@ -68,6 +75,7 @@
         }
         .btn-play:hover {
             background-color: #0056b3;
+            transform: translateY(-2px);
         }
         .btn-stop {
             background-color: #dc3545;
@@ -75,27 +83,27 @@
         }
         .btn-stop:hover {
             background-color: #a71d2a;
+            transform: translateY(-2px);
         }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <h1>Đọc Văn Bản</h1>
-        <textarea id="text-input" placeholder="Nhập văn bản bạn muốn đọc vào đây..."></textarea>
+        <h1>Đọc Văn Bản Tiếng Việt</h1>
+        <textarea id="text-input" placeholder="Nhập văn bản tiếng Việt của bạn vào đây..."></textarea>
         
         <select id="voice-select">
             <option value="">Đang tải giọng đọc...</option>
         </select>
 
         <div class="buttons">
-            <button class="btn-play" id="play-btn">▶ Đọc</button>
-            <button class="btn-stop" id="stop-btn">⬛ Dừng</button>
+            <button class="btn-play" id="play-btn">▶ Đọc ngay</button>
+            <button class="btn-stop" id="stop-btn">⬛ Dừng lại</button>
         </div>
     </div>
 
     <script>
-        // Khởi tạo Web Speech API
         const synth = window.speechSynthesis;
         const textInput = document.querySelector('#text-input');
         const voiceSelect = document.querySelector('#voice-select');
@@ -104,65 +112,66 @@
 
         let voices = [];
 
-        // Hàm lấy danh sách giọng đọc từ trình duyệt
         function populateVoiceList() {
             voices = synth.getVoices();
             voiceSelect.innerHTML = '';
             
-            // Lọc và hiển thị các giọng đọc (ưu tiên tiếng Việt nếu có)
-            voices.forEach((voice) => {
+            // Lọc ra danh sách chỉ chứa giọng Tiếng Việt
+            const vietnameseVoices = voices.filter(voice => voice.lang.includes('vi'));
+            
+            // Nếu có giọng tiếng việt thì dùng danh sách đó, không thì dùng toàn bộ giọng mặc định
+            const displayVoices = vietnameseVoices.length > 0 ? vietnameseVoices : voices;
+
+            if (vietnameseVoices.length === 0 && voices.length > 0) {
+                const warningOption = document.createElement('option');
+                warningOption.textContent = "Không tìm thấy giọng Tiếng Việt (Hiển thị tất cả)";
+                voiceSelect.appendChild(warningOption);
+            }
+
+            displayVoices.forEach((voice) => {
                 const option = document.createElement('option');
                 option.textContent = `${voice.name} (${voice.lang})`;
-                
-                // Lưu thông tin để gọi sau này
                 option.setAttribute('data-lang', voice.lang);
                 option.setAttribute('data-name', voice.name);
-                
-                // Mặc định chọn giọng tiếng Việt nếu trình duyệt hỗ trợ
-                if (voice.lang.includes('vi')) {
-                    option.selected = true;
-                }
-                
                 voiceSelect.appendChild(option);
             });
         }
 
-        // Trình duyệt cần thời gian để tải danh sách giọng đọc
         populateVoiceList();
         if (speechSynthesis.onvoiceschanged !== undefined) {
             speechSynthesis.onvoiceschanged = populateVoiceList;
         }
 
-        // Hàm phát âm thanh
         function speak() {
             if (synth.speaking) {
-                console.error('Đang đọc rồi...');
+                console.warn('Đang đọc rồi...');
                 return;
             }
             
             if (textInput.value !== '') {
                 const utterThis = new SpeechSynthesisUtterance(textInput.value);
                 
-                // Tìm giọng đọc được chọn trong dropdown
-                const selectedOption = voiceSelect.selectedOptions[0].getAttribute('data-name');
-                for (let i = 0; i < voices.length; i++) {
-                    if (voices[i].name === selectedOption) {
-                        utterThis.voice = voices[i];
-                        break;
+                // Cấu hình ngôn ngữ mặc định là Tiếng Việt
+                utterThis.lang = 'vi-VN';
+
+                const selectedOption = voiceSelect.selectedOptions[0]?.getAttribute('data-name');
+                if (selectedOption) {
+                    for (let i = 0; i < voices.length; i++) {
+                        if (voices[i].name === selectedOption) {
+                            utterThis.voice = voices[i];
+                            break;
+                        }
                     }
                 }
                 
-                // Bắt đầu đọc
                 synth.speak(utterThis);
             }
         }
 
-        // Bắt sự kiện click nút Đọc
         playBtn.addEventListener('click', () => {
             speak();
         });
 
-        // Bắt sự kiện click nút Dừng
         stopBtn.addEventListener('click', () => {
             synth.cancel();
         });
